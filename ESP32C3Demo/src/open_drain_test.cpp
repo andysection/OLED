@@ -29,9 +29,14 @@ constexpr SignalPin kSignalPins[] = {
 const SignalPin *armedSignal = nullptr;
 uint32_t armDeadlineMs = 0;
 
-void makeHighImpedance(const SignalPin &signal) {
-  gpio_set_direction(signal.gpio, GPIO_MODE_INPUT);
-  gpio_set_pull_mode(signal.gpio, GPIO_FLOATING);
+esp_err_t makeHighImpedance(const SignalPin &signal) {
+  gpio_config_t config = {};
+  config.pin_bit_mask = 1ULL << signal.gpio;
+  config.mode = GPIO_MODE_INPUT;
+  config.pull_up_en = GPIO_PULLUP_DISABLE;
+  config.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  config.intr_type = GPIO_INTR_DISABLE;
+  return gpio_config(&config);
 }
 
 void releaseAllSignals() {
@@ -135,14 +140,37 @@ void confirmSignal(const String &name) {
                 signal.oledPad, static_cast<unsigned>(signal.gpio));
   Serial.println("Measure OLED P6-to-P13 now.");
 
-  gpio_set_level(signal.gpio, 0);
-  gpio_set_pull_mode(signal.gpio, GPIO_FLOATING);
-  gpio_set_direction(signal.gpio, GPIO_MODE_OUTPUT_OD);
-  delay(kLowPulseMs);
-  makeHighImpedance(signal);
+  // Preload LOW before enabling the output path. INPUT_OUTPUT_OD keeps the
+  // input buffer enabled so the pad level can be independently read back.
+  const esp_err_t preloadResult = gpio_set_level(signal.gpio, 0);
+  gpio_config_t lowConfig = {};
+  lowConfig.pin_bit_mask = 1ULL << signal.gpio;
+  lowConfig.mode = GPIO_MODE_INPUT_OUTPUT_OD;
+  lowConfig.pull_up_en = GPIO_PULLUP_DISABLE;
+  lowConfig.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  lowConfig.intr_type = GPIO_INTR_DISABLE;
+  const esp_err_t configResult = gpio_config(&lowConfig);
+  const esp_err_t driveResult = gpio_set_level(signal.gpio, 0);
+
+  delay(20);
+  const int assertedLevel = gpio_get_level(signal.gpio);
+  Serial.printf(
+      "GPIO%u assert results: preload=%d config=%d drive=%d readback=%s\n",
+      static_cast<unsigned>(signal.gpio), static_cast<int>(preloadResult),
+      static_cast<int>(configResult), static_cast<int>(driveResult),
+      assertedLevel ? "HIGH" : "LOW");
+
+  delay(kLowPulseMs - 20);
+  const esp_err_t releaseResult = makeHighImpedance(signal);
+  delay(20);
+  const int releasedLevel = gpio_get_level(signal.gpio);
 
   Serial.printf("RELEASED: OLED P%u / GPIO%u is high impedance again.\n",
                 signal.oledPad, static_cast<unsigned>(signal.gpio));
+  Serial.printf("GPIO%u release result: config=%d readback=%s\n",
+                static_cast<unsigned>(signal.gpio),
+                static_cast<int>(releaseResult),
+                releasedLevel ? "HIGH" : "LOW");
   Serial.println("Power the OLED off before changing any wiring.");
 }
 
