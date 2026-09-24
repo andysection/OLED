@@ -1,0 +1,103 @@
+menu "Bluetooth PANU"
+
+    config PAN_PEER_DEVICE_NAME
+        string "iPhone Bluetooth device name"
+        default "CHANGE_ME_IPHONE_NAME"
+        help
+            This must exactly match Settings > General > About > Name on the iPhone.
+
+    config PAN_LOCAL_DEVICE_NAME
+        string "ESP32 Bluetooth device name"
+        default "ESP32_PANU"
+
+    config PAN_PING_TARGET
+        string "IPv4 address used to verify Internet access"
+        default "8.8.8.8"
+
+    config PAN_PING_TARGET_IPV6
+        string "IPv6 address used to verify Internet access"
+        default "2606:4700:f1::123"
+
+    config PAN_PING_COUNT
+        int "Ping packet count"
+        default 5
+        range 1 100
+
+    config PAN_PING_TIMEOUT_MS
+        int "Ping timeout in milliseconds"
+        default 3000
+        range 500 30000
+
+    config PAN_RETRY_DELAY_SECONDS
+        int "Delay before retrying iPhone PAN connection (seconds)"
+        default 15
+        range 5 300
+
+    config PAN_DHCP_TIMEOUT_SECONDS
+        int "IP address timeout before reconnecting PAN (seconds)"
+        default 30
+        range 5 120
+
+    config PAN_STATIC_IPV4_FALLBACK
+        bool "Use iPhone hotspot static IPv4 fallback when DHCP is unavailable"
+        default n
+
+    config PAN_STATIC_IPV4_ADDRESS
+        string "Static IPv4 fallback address"
+        default "172.20.10.2"
+        depends on PAN_STATIC_IPV4_FALLBACK
+
+    config PAN_STATIC_IPV4_GATEWAY
+        string "Static IPv4 fallback gateway"
+        default "172.20.10.1"
+        depends on PAN_STATIC_IPV4_FALLBACK
+
+    config PAN_STATIC_IPV4_NETMASK
+        string "Static IPv4 fallback netmask"
+        default "255.255.255.240"
+        depends on PAN_STATIC_IPV4_FALLBACK
+
+    config PAN_NETWORK_TEST_INTERVAL_SECONDS
+        int "Interval between Internet ping tests (seconds)"
+        default 30
+        range 5 3600
+
+    config PAN_HTTP_GET_URL
+        string "HTTP GET test URL"
+        default "http://httpbin.org/get"
+
+    config PAN_HTTP_POST_URL
+        string "HTTP POST test URL"
+        default "http://httpbin.org/post"
+
+    config PAN_HTTP_TIMEOUT_MS
+        int "HTTP request timeout in milliseconds"
+        default 10000
+        range 1000 60000
+
+    config PAN_IPV4_DNS_SERVER
+        string "DNS server used with static IPv4 fallback"
+        default "1.1.1.1"
+
+    config PAN_SNTP_SERVER
+        string "Internet time server"
+        default "2606:4700:f1::123"
+
+    config PAN_IPV6_DNS_SERVER
+        string "Fallback IPv6 DNS server"
+        default "2400:3200::1"
+        help
+            Used when the iPhone IPv6 router advertisement has no RDNSS option.
+
+    config PAN_TIME_ZONE
+        string "POSIX time zone"
+        default "CST-8"
+        help
+            CST-8 is China Standard Time (UTC+8).
+
+    config PAN_TIME_PRINT_INTERVAL_SECONDS
+        int "Interval between time log messages (seconds)"
+        default 30
+        range 5 3600
+
+endmenu
